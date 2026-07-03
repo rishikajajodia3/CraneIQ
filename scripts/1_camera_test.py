@@ -1,51 +1,65 @@
 import cv2
-import mediapipe as mp
+from utils.hand_tracker import get_hands_model, get_landmarks, draw_landmarks
 
-mp_hands = mp.solutions.hands
-hands = mp_hands.Hands(
-    max_num_hands=1,
-    min_detection_confidence=0.7,
-    min_tracking_confidence=0.7
-)
+# Initialize MediaPipe Hands
+hands_model = get_hands_model()
 
-mp_draw = mp.solutions.drawing_utils
-
+# Open webcam
 cap = cv2.VideoCapture(0)
 
-print("Starting MediaPipe Hand Tracking...")
+if not cap.isOpened():
+    print("Error: Could not open camera.")
+    exit()
+
+print("Starting CraneIQ Hand Tracking...")
+print("Press 'q' to quit.\n")
+
+hand_detected = False
 
 while True:
     ret, frame = cap.read()
     if not ret:
-        print("Failed to grab frame")
+        print("Failed to grab frame.")
         break
 
+    # Mirror the camera for a natural view
     frame = cv2.flip(frame, 1)
 
-    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    result = hands.process(rgb)
+    # Detect hand landmarks
+    landmarks, hand_landmarks = get_landmarks(frame, hands_model)
 
-    if result.multi_hand_landmarks:
-        
+    if landmarks:
+        # Draw the hand skeleton
+        draw_landmarks(frame, hand_landmarks)
 
-        for hand_landmarks in result.multi_hand_landmarks:
-            landmarks = []
+        # Print only when a hand is first detected
+        if not hand_detected:
+            print(f"Hand detected! Extracting {len(landmarks)} landmark values.")
+            hand_detected = True
+    else:
+        # Print only when the hand disappears
+        if hand_detected:
+            print("Hand lost.")
+            hand_detected = False
 
-            for lm in hand_landmarks.landmark:
-                landmarks.append([lm.x, lm.y, lm.z])
+        # Display a helpful message on the video
+        cv2.putText(
+            frame,
+            "No hand detected",
+            (20, 40),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (0, 0, 255),
+            2
+        )
 
-            
-
-            mp_draw.draw_landmarks(
-                frame,
-                hand_landmarks,
-                mp_hands.HAND_CONNECTIONS
-            )
-
+    # Show the camera feed
     cv2.imshow("CraneIQ - Hand Tracking", frame)
 
+    # Quit when 'q' is pressed
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
+# Cleanup
 cap.release()
 cv2.destroyAllWindows()
