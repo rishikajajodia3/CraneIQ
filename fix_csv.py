@@ -1,21 +1,24 @@
 """
-fix_csv.py  (one-off migration script — run this once)
+fix_csv.py (one-time migration utility)
 
-Your gesture_data.csv currently has mixed row lengths:
-  - old rows (recorded before session_id was added): 64 fields
+This script updates gesture_data.csv so every row follows the same format.
+
+Supported formats:
+  • Legacy rows (64 columns):
       [63 landmark values, label]
-  - new rows (recorded after the update): 65 fields
+  • Current rows (65 columns):
       [63 landmark values, label, session_id]
 
-This script rewrites the CSV with a consistent 65-field format:
-  - old rows get tagged with session_id = "legacy_session"
-  - new rows keep their real session_id
-  - a clean, correct header is written at the top
+During migration:
+  • Legacy rows are assigned session_id = "legacy_session".
+  • Existing session IDs are preserved.
+  • A fresh header is written to the output CSV.
 
-Run this once from the project root:
+The original dataset is backed up as gesture_data_backup.csv before any
+changes are made.
+
+Run from the project root:
     python fix_csv.py
-
-It backs up your original file to gesture_data_backup.csv first, just in case.
 """
 
 import csv
