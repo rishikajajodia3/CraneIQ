@@ -27,8 +27,10 @@ class VerificationState(Enum):
 class VerificationEngine:
     def __init__(
         self,
-        response_window=1.5,
-        timeout_window=4.0,
+        response_window=3.0,   # was 1.5 — loosened for solo/manual testing.
+                                # Revert to 1.5 for your final two-person demo recording.
+        timeout_window=8.0,    # was 4.0 — gives time to alt-tab + press a key solo.
+                                # Revert to 4.0 for your final two-person demo recording.
         hold_time=2.0,
     ):
         self.response_window = response_window
@@ -61,6 +63,15 @@ class VerificationEngine:
 
         if timestamp is None:
             timestamp = time.time()
+
+        # NEW: don't let a new gesture interrupt a result that's still
+        # being displayed on screen/dashboard. Without this, holding the
+        # same gesture a moment too long after a MATCH/MISMATCH resolves
+        # could immediately re-trigger a new cycle and cut the result
+        # display short before hold_time finishes.
+        if self.has_result() and self.resolved_time is not None:
+            if timestamp - self.resolved_time < self.hold_time:
+                return
 
         # Ignore duplicate confirmed gestures while
         # already waiting for an operator response.
